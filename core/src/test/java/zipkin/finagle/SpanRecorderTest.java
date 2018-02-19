@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -104,7 +104,7 @@ public class SpanRecorderTest {
     );
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("record", "unhandled", "java.util.Date"))).isEqualTo(1);
+    assertThat(map.get(seq("record", "unhandled", "java.util.Date"))).isEqualTo(1L);
     assertThat(map.size()).isEqualTo(1);
   }
 
@@ -118,7 +118,7 @@ public class SpanRecorderTest {
         new Record(root, Time.fromMilliseconds(TODAY), new FancyAnnotation(), empty())
     );
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("record", "unhandled", FancyAnnotation.class.getName()))).isEqualTo(1);
+    assertThat(map.get(seq("record", "unhandled", FancyAnnotation.class.getName()))).isEqualTo(1L);
     assertThat(map.size()).isEqualTo(1);
   }
 

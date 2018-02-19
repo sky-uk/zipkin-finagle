@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -38,7 +38,6 @@ import zipkin.reporter.libthrift.InternalScribeCodec;
 import zipkin.storage.InMemoryStorage;
 import zipkin.storage.QueryRequest;
 
-import static jdk.nashorn.internal.objects.Global.println;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 import static scala.collection.JavaConversions.mapAsJavaMap;
@@ -91,19 +90,23 @@ public class ScribeZipkinTracerIntegrationTest extends ZipkinTracerIntegrationTe
     Thread.sleep(1500); // wait for scribe request attempt to go through
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("spans"))).isEqualTo(1);
-    assertThat(map.get(seq("span_bytes"))).isEqualTo(165);
-    assertThat(map.get(seq("spans_dropped"))).isEqualTo(1);
-    assertThat(map.get(seq("messages"))).isEqualTo(1);
-    assertThat(map.get(seq("message_bytes"))).isEqualTo(273);
-    assertThat(map.get(seq("messages_dropped"))).isEqualTo(1);
-    assertThat(map.get(seq("messages_dropped", "com.twitter.finagle.Failure"))).isEqualTo(1);
+    assertThat(map.get(seq("spans"))).isEqualTo(1L);
+    assertThat(map.get(seq("span_bytes"))).isEqualTo(165L);
+    assertThat(map.get(seq("spans_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
+    assertThat(map.get(seq("message_bytes"))).isEqualTo(273L);
+    assertThat(map.get(seq("messages_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages_dropped", "com.twitter.finagle.Failure"))).isEqualTo(1L);
     assertThat(map.get(seq("messages_dropped", "com.twitter.finagle.Failure",
-            "com.twitter.finagle.ConnectionFailedException"))).isEqualTo(1);
+            "com.twitter.finagle.ConnectionFailedException"))).isEqualTo(1L);
     assertThat(map.get(seq("messages_dropped", "com.twitter.finagle.Failure",
             "com.twitter.finagle.ConnectionFailedException",
-            "java.net.ConnectException"))).isEqualTo(1);
+            "io.netty.channel.AbstractChannel$AnnotatedConnectException"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages_dropped", "com.twitter.finagle.Failure",
+            "com.twitter.finagle.ConnectionFailedException",
+            "io.netty.channel.AbstractChannel$AnnotatedConnectException",
+            "java.net.ConnectException"))).isEqualTo(1L);
 
-    assertThat(map.size()).isEqualTo(9);
+    assertThat(map.size()).isEqualTo(10);
   }
 }

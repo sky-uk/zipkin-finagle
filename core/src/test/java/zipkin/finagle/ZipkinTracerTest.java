@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -18,7 +18,10 @@ import com.twitter.finagle.tracing.Annotation.ClientRecv;
 import com.twitter.finagle.tracing.Annotation.ClientSend;
 import com.twitter.finagle.tracing.Annotation.Rpc;
 import com.twitter.finagle.tracing.Annotation.ServiceName;
+import com.twitter.finagle.tracing.Flags$;
 import com.twitter.finagle.tracing.Record;
+import com.twitter.finagle.tracing.SpanId;
+import com.twitter.finagle.tracing.TraceId;
 import com.twitter.util.Time;
 import java.util.List;
 import java.util.Map;
@@ -49,12 +52,12 @@ public class ZipkinTracerTest {
   InMemoryStatsReceiver stats = new InMemoryStatsReceiver();
   BlockingQueue<List<Span>> spansSent = new LinkedBlockingDeque<>();
 
-  ZipkinTracer tracer = newTracer(FakeSender.create().onSpans(span -> spansSent.add(span)));
+  ZipkinTracer tracer = newTracer(FakeSender.create().onSpans(spansSent::add));
 
   ZipkinTracer newTracer(Sender sender) {
     return new ZipkinTracer(AsyncReporter.builder(sender)
         .messageTimeout(0, TimeUnit.MILLISECONDS)
-        .messageMaxBytes(170) // size of a simple span
+        .messageMaxBytes(176 + 5) // size of a simple span w/ 128-bit trace ID + list overhead
         .metrics(new ReporterMetricsAdapter(stats))
         .build(), () -> 1.0f, stats);
   }
@@ -90,6 +93,31 @@ public class ZipkinTracerTest {
         .containsExactly("cs", "cr");
   }
 
+  /** See {@link com.twitter.finagle.tracing.traceId128Bit$} */
+  @Test public void traceId128Bit() throws Exception {
+    TraceId root = new TraceId(
+        SpanId.fromString("0f28590523a46541"),
+        empty(),
+        SpanId.fromString("0f28590523a46541").get(),
+        empty(),
+        Flags$.MODULE$.apply(),
+        SpanId.fromString("d2f9288a2904503d")
+    );
+
+    tracer.record(new Record(root, Time.fromMilliseconds(TODAY), new ServiceName("web"), empty()));
+    tracer.record(new Record(root, Time.fromMilliseconds(TODAY), new Rpc("get"), empty()));
+    tracer.record(new Record(root, Time.fromMilliseconds(TODAY), new ClientSend(), empty()));
+
+    // client receive reports the span
+    tracer.record(new Record(root, Time.fromMilliseconds(TODAY + 1), new ClientRecv(), empty()));
+
+    tracer.reporter.flush();
+
+    assertThat(spansSent.take().stream())
+        .extracting(Span::traceIdString)
+        .containsExactly("d2f9288a2904503d0f28590523a46541");
+  }
+
   @Test
   public void reportIncrementsAcceptedMetrics() throws Exception {
     tracer.record(new Record(root, Time.fromMilliseconds(TODAY), new ServiceName("web"), empty()));
@@ -100,10 +128,10 @@ public class ZipkinTracerTest {
     tracer.reporter.flush();
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("spans"))).isEqualTo(1);
-    assertThat(map.get(seq("span_bytes"))).isEqualTo(165);
-    assertThat(map.get(seq("messages"))).isEqualTo(1);
-    assertThat(map.get(seq("message_bytes"))).isEqualTo(170);
+    assertThat(map.get(seq("spans"))).isEqualTo(1L);
+    assertThat(map.get(seq("span_bytes"))).isEqualTo(165L);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
+    assertThat(map.get(seq("message_bytes"))).isEqualTo(170L);
 
     assertThat(map.size()).isEqualTo(4);
   }
@@ -123,15 +151,15 @@ public class ZipkinTracerTest {
     tracer.reporter.flush();
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-     assertThat(map.get(seq("spans"))).isEqualTo(1);
-     assertThat(map.get(seq("span_bytes"))).isEqualTo(165);
-     assertThat(map.get(seq("spans_dropped"))).isEqualTo(1);
-     assertThat(map.get(seq("messages"))).isEqualTo(1);
-     assertThat(map.get(seq("message_bytes"))).isEqualTo(170);
-     assertThat(map.get(seq("messages_dropped"))).isEqualTo(1);
-     assertThat(map.get(seq("messages_dropped", "java.lang.IllegalStateException"))).isEqualTo(1);
+     assertThat(map.get(seq("spans"))).isEqualTo(1L);
+     assertThat(map.get(seq("span_bytes"))).isEqualTo(165L);
+     assertThat(map.get(seq("spans_dropped"))).isEqualTo(1L);
+     assertThat(map.get(seq("messages"))).isEqualTo(1L);
+     assertThat(map.get(seq("message_bytes"))).isEqualTo(170L);
+     assertThat(map.get(seq("messages_dropped"))).isEqualTo(1L);
+     assertThat(map.get(seq("messages_dropped", "java.lang.IllegalStateException"))).isEqualTo(1L);
      assertThat(map.get(seq("messages_dropped", "java.lang.IllegalStateException",
-             "java.lang.NullPointerException"))).isEqualTo(1);
+             "java.lang.NullPointerException"))).isEqualTo(1L);
      assertThat(map.size()).isEqualTo(8);
   }
 }

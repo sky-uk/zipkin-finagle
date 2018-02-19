@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -99,13 +99,13 @@ public class KafkaZipkinTracerIntegrationTest extends ZipkinTracerIntegrationTes
     Thread.sleep(1500); // wait for kafka request attempt to go through
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("spans"))).isEqualTo(1);
-    assertThat(map.get(seq("span_bytes"))).isEqualTo(165);
-    assertThat(map.get(seq("spans_dropped"))).isEqualTo(1);
-    assertThat(map.get(seq("messages"))).isEqualTo(1);
-    assertThat(map.get(seq("message_bytes"))).isEqualTo(170);
-    assertThat(map.get(seq("messages_dropped"))).isEqualTo(1);
-    assertThat(map.get(seq("messages_dropped", "org.apache.kafka.common.errors.TimeoutException"))).isEqualTo(1);
+    assertThat(map.get(seq("spans"))).isEqualTo(1L);
+    assertThat(map.get(seq("span_bytes"))).isEqualTo(165L);
+    assertThat(map.get(seq("spans_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
+    assertThat(map.get(seq("message_bytes"))).isEqualTo(170L);
+    assertThat(map.get(seq("messages_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages_dropped", "org.apache.kafka.common.errors.TimeoutException"))).isEqualTo(1L);
 
     assertThat(map.size()).isEqualTo(7);
   }

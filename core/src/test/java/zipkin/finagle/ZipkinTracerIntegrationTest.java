@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -103,14 +103,14 @@ public abstract class ZipkinTracerIntegrationTest {
 
     assertThat(getTraces()).containsExactly(asList(span1, span2));
 
-    int expectedSpanBytes = Codec.THRIFT.sizeInBytes(span1) + Codec.THRIFT.sizeInBytes(span2);
-    int expectedMessageSize =
+    long expectedSpanBytes = Codec.THRIFT.sizeInBytes(span1) + Codec.THRIFT.sizeInBytes(span2);
+    long expectedMessageSize =
         messageSizeInBytes(asList(Encoder.THRIFT.encode(span1), Encoder.THRIFT.encode(span2)));
 
     Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
-    assertThat(map.get(seq("spans"))).isEqualTo(2);
+    assertThat(map.get(seq("spans"))).isEqualTo(2L);
     assertThat(map.get(seq("span_bytes"))).isEqualTo(expectedSpanBytes);
-    assertThat(map.get(seq("messages"))).isEqualTo(1);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
     assertThat(map.get(seq("message_bytes"))).isEqualTo(expectedMessageSize);
 
     assertThat(map.size()).isEqualTo(4);
