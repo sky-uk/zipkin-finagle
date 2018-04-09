@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -21,11 +21,14 @@ import com.twitter.finagle.tracing.Annotation.ServiceName;
 import com.twitter.finagle.tracing.Record;
 import com.twitter.util.Time;
 import java.util.List;
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scala.collection.Seq;
 import zipkin.Annotation;
 import zipkin.Codec;
 import zipkin.Endpoint;
@@ -104,11 +107,12 @@ public abstract class ZipkinTracerIntegrationTest {
     long expectedMessageSize =
         messageSizeInBytes(asList(Encoder.THRIFT.encode(span1), Encoder.THRIFT.encode(span2)));
 
-    assertThat(mapAsJavaMap(stats.counters())).containsExactly(
-        entry(seq("span_bytes"), expectedSpanBytes),
-        entry(seq("spans"), 2L),
-        entry(seq("message_bytes"), expectedMessageSize),
-        entry(seq("messages"), 1L)
-    );
+    Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
+    assertThat(map.get(seq("spans"))).isEqualTo(2L);
+    assertThat(map.get(seq("span_bytes"))).isEqualTo(expectedSpanBytes);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
+    assertThat(map.get(seq("message_bytes"))).isEqualTo(expectedMessageSize);
+
+    assertThat(map.size()).isEqualTo(4);
   }
 }

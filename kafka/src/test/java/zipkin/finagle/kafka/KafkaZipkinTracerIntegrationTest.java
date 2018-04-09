@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import scala.Option;
+import scala.collection.Seq;
 import zipkin.Codec;
 import zipkin.Span;
 import zipkin.finagle.ZipkinTracer;
@@ -97,14 +98,15 @@ public class KafkaZipkinTracerIntegrationTest extends ZipkinTracerIntegrationTes
 
     Thread.sleep(1500); // wait for kafka request attempt to go through
 
-    assertThat(mapAsJavaMap(stats.counters())).containsOnly(
-        entry(seq("spans"), 1L),
-        entry(seq("span_bytes"), 165L),
-        entry(seq("spans_dropped"), 1L),
-        entry(seq("messages"), 1L),
-        entry(seq("message_bytes"), 170L),
-        entry(seq("messages_dropped"), 1L),
-        entry(seq("messages_dropped", "org.apache.kafka.common.errors.TimeoutException"), 1L)
-    );
+    Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
+    assertThat(map.get(seq("spans"))).isEqualTo(1L);
+    assertThat(map.get(seq("span_bytes"))).isEqualTo(165L);
+    assertThat(map.get(seq("spans_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages"))).isEqualTo(1L);
+    assertThat(map.get(seq("message_bytes"))).isEqualTo(170L);
+    assertThat(map.get(seq("messages_dropped"))).isEqualTo(1L);
+    assertThat(map.get(seq("messages_dropped", "org.apache.kafka.common.errors.TimeoutException"))).isEqualTo(1L);
+
+    assertThat(map.size()).isEqualTo(7);
   }
 }

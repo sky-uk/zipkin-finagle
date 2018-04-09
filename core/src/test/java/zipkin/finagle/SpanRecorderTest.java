@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 The OpenZipkin Authors
+ * Copyright 2016-2018 The OpenZipkin Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -23,11 +23,13 @@ import com.twitter.util.MockTimer;
 import com.twitter.util.Time;
 import java.net.InetSocketAddress;
 import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import scala.collection.Seq;
 import zipkin.Span;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -101,9 +103,9 @@ public class SpanRecorderTest {
             new Annotation.BinaryAnnotation("web", new Date()), empty())
     );
 
-    assertThat(mapAsJavaMap(stats.counters())).containsExactly(
-        entry(seq("record", "unhandled", "java.util.Date"), 1L)
-    );
+    Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
+    assertThat(map.get(seq("record", "unhandled", "java.util.Date"))).isEqualTo(1L);
+    assertThat(map.size()).isEqualTo(1);
   }
 
   /** Better to drop instead of crash on expected new Annotation types */
@@ -115,10 +117,9 @@ public class SpanRecorderTest {
     recorder.record(
         new Record(root, Time.fromMilliseconds(TODAY), new FancyAnnotation(), empty())
     );
-
-    assertThat(mapAsJavaMap(stats.counters())).containsExactly(
-        entry(seq("record", "unhandled", FancyAnnotation.class.getName()), 1L)
-    );
+    Map<Seq<String>, Object> map = mapAsJavaMap(stats.counters());
+    assertThat(map.get(seq("record", "unhandled", FancyAnnotation.class.getName()))).isEqualTo(1L);
+    assertThat(map.size()).isEqualTo(1);
   }
 
   @Test public void reportsSpanOn_ClientRecv() throws Exception {
